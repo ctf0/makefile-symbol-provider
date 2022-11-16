@@ -1,3 +1,4 @@
+import { constants } from 'buffer'
 import * as vscode from 'vscode'
 
 export function activate(context: vscode.ExtensionContext) {
@@ -17,7 +18,33 @@ class DynamicSymbolProvider implements vscode.DocumentSymbolProvider {
         for (let line = 0; line < document.lineCount; line++) {
             const { text } = document.lineAt(line)
 
-            let reg = new RegExp('^([a-zA-Z0-9]+):', 'g').exec(text)
+            /* Keys --------------------------------------------------------------------- */
+            // aaa :
+            // aaa:
+            let reg = new RegExp(/^(?!\.PHONY)(\S+)(?=( +)?:)/, 'g').exec(text)
+
+            if (reg !== null) {
+                let cmnd = reg[0]
+
+                result.push(
+                    new vscode.SymbolInformation(
+                        cmnd,
+                        vscode.SymbolKind.Key,
+                        '',
+                        new vscode.Location(
+                            document.uri,
+                            new vscode.Range(new vscode.Position(line,0),
+                            new vscode.Position(line,text.length - 1))
+                        )
+                    )
+                )
+            }
+
+            // /* Variables ---------------------------------------------------------------- */
+            // // bbb :=
+            // // bbb =
+            // // bbb=
+            reg = new RegExp(/^(\S+)(?=( +)?(:)?\=)/, 'g').exec(text)
 
             if (reg !== null) {
                 let cmnd = reg[1]
@@ -25,8 +52,30 @@ class DynamicSymbolProvider implements vscode.DocumentSymbolProvider {
                 result.push(
                     new vscode.SymbolInformation(
                         cmnd,
-                        vscode.SymbolKind.Key,
+                        vscode.SymbolKind.Variable,
+                        '',
+                        new vscode.Location(
+                            document.uri,
+                            new vscode.Range(new vscode.Position(line,0),
+                            new vscode.Position(line,text.length - 1))
+                        )
+                    )
+                )
+            }
+
+            // /* Phony ---------------------------------------------------------------- */
+            // // .PHONY:aaa
+            // // .PHONY : aaa
+            reg = new RegExp(/(?<=^\.PHONY:( )?)(.*)?/, 'g').exec(text)
+
+            if (reg !== null) {
+                let cmnd = reg[0].trim()
+
+                result.push(
+                    new vscode.SymbolInformation(
                         cmnd,
+                        vscode.SymbolKind.Struct,
+                        'PHONY',
                         new vscode.Location(
                             document.uri,
                             new vscode.Range(new vscode.Position(line,0),
