@@ -8,3 +8,7 @@
 
 - better regex
 - add support to variables & phony
+
+## 0.0.3
+
+- add code lens to run the cmnd

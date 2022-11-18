@@ -1,94 +1,36 @@
-import { constants } from 'buffer'
+import lensProvider from './CodelensProvider';
+import SymbolProvider from './SymbolProvider';
 import * as vscode from 'vscode'
+
+const TERMNL_WINDOW = 'MakeFile: Run'
+const FILE_TYPE = 'makefile'
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.languages.registerDocumentSymbolProvider(
-            {language: "makefile"}, new DynamicSymbolProvider()
-        )
+        vscode.languages.registerDocumentSymbolProvider([FILE_TYPE], new SymbolProvider()),
+        vscode.languages.registerCodeLensProvider([FILE_TYPE], new lensProvider()),
+        vscode.commands.registerCommand(`${FILE_TYPE}.run`, (data) => {
+            let terminal: vscode.Terminal = getTerminalWindow()
+            terminal.show()
+            terminal.sendText(`make ${data}`)
+        })
     )
 }
 
-class DynamicSymbolProvider implements vscode.DocumentSymbolProvider {
+function getTerminalWindow() {
+    let terminal
+    let trmnls = vscode.window.terminals
 
-    public provideDocumentSymbols(document: vscode.TextDocument): vscode.SymbolInformation[] {
+    for (let index = 0; index < trmnls.length; index++) {
+        const trmnl = trmnls[index]
 
-        const result: vscode.SymbolInformation[] = []
-
-        for (let line = 0; line < document.lineCount; line++) {
-            const { text } = document.lineAt(line)
-
-            /* Keys --------------------------------------------------------------------- */
-            // aaa :
-            // aaa:
-            let reg = new RegExp(/^(?!\.PHONY)(\S+)(?=( +)?:)/, 'g').exec(text)
-
-            if (reg !== null) {
-                let cmnd = reg[0]
-
-                result.push(
-                    new vscode.SymbolInformation(
-                        cmnd,
-                        vscode.SymbolKind.Key,
-                        '',
-                        new vscode.Location(
-                            document.uri,
-                            new vscode.Range(new vscode.Position(line,0),
-                            new vscode.Position(line,text.length - 1))
-                        )
-                    )
-                )
-            }
-
-            // /* Variables ---------------------------------------------------------------- */
-            // // bbb :=
-            // // bbb =
-            // // bbb=
-            reg = new RegExp(/^(\S+)(?=( +)?(:)?\=)/, 'g').exec(text)
-
-            if (reg !== null) {
-                let cmnd = reg[1]
-
-                result.push(
-                    new vscode.SymbolInformation(
-                        cmnd,
-                        vscode.SymbolKind.Variable,
-                        '',
-                        new vscode.Location(
-                            document.uri,
-                            new vscode.Range(new vscode.Position(line,0),
-                            new vscode.Position(line,text.length - 1))
-                        )
-                    )
-                )
-            }
-
-            // /* Phony ---------------------------------------------------------------- */
-            // // .PHONY:aaa
-            // // .PHONY : aaa
-            reg = new RegExp(/(?<=^\.PHONY:( )?)(.*)?/, 'g').exec(text)
-
-            if (reg !== null) {
-                let cmnd = reg[0].trim()
-
-                result.push(
-                    new vscode.SymbolInformation(
-                        cmnd,
-                        vscode.SymbolKind.Struct,
-                        'PHONY',
-                        new vscode.Location(
-                            document.uri,
-                            new vscode.Range(new vscode.Position(line,0),
-                            new vscode.Position(line,text.length - 1))
-                        )
-                    )
-                )
-            }
+        if (trmnl.name == TERMNL_WINDOW) {
+            terminal = trmnl
+            break
         }
-
-        return result
     }
+
+    return terminal || vscode.window.createTerminal(TERMNL_WINDOW)
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() { }

@@ -2,7 +2,7 @@
     "name": "makefile-symbol-provider",
     "displayName": "Makefile Symbol Provider",
     "description": "Makefile Symbol Provider",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "publisher": "ctf0",
     "repository": "https://github.com/ctf0/makefile-symbol-provider",
     "engines": {
